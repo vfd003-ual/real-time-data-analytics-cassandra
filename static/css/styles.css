@@ -1,0 +1,57 @@
+/* Dashboard styles */
+.card {
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: none;
+    padding: 1rem;
+}
+
+.refresh-button {
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.refresh-button:hover {
+    transform: rotate(45deg);
+}
+
+.loading {
+    opacity: 0.5;
+}
+
+.status-card {
+    transition: all 0.3s ease;
+}
+
+.product-card {
+    transition: transform 0.2s;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+}
+
+.stats-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #0d6efd;
+}
+
+.compact-card {
+    margin-bottom: 0.75rem;
+}
+
+.compact-card .card-body {
+    padding: 1rem;
+}
+
+.compact-stats {
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}

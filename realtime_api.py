@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
@@ -10,12 +10,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- Configuracion de Flask ---
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 CORS(app) 
 
+# Ruta para servir el dashboard
+@app.route('/')
+def serve_dashboard():
+    return send_from_directory(app.static_folder, 'index.html')
+
 # --- Configuracion de Cassandra ---
-CASSANDRA_HOSTS = os.getenv('CASSANDRA_HOSTS', '127.0.0.1').split(',')
-CASSANDRA_KEYSPACE = os.getenv('CASSANDRA_KEYSPACE', 'realtime_analytics_ks')
+CASSANDRA_HOSTS = os.getenv('CASSANDRA_HOSTS').split(',') if os.getenv('CASSANDRA_HOSTS') else None
+CASSANDRA_KEYSPACE = os.getenv('CASSANDRA_KEYSPACE')
 CASSANDRA_USERNAME = os.getenv('CASSANDRA_USERNAME')
 CASSANDRA_PASSWORD = os.getenv('CASSANDRA_PASSWORD')
 
@@ -28,6 +33,10 @@ def get_cassandra_session():
     global cluster, session
     if session is None or session.is_shutdown:
         try:
+            if not CASSANDRA_HOSTS or not CASSANDRA_KEYSPACE:
+                print("❌ Error: CASSANDRA_HOSTS y CASSANDRA_KEYSPACE deben estar configurados en el archivo .env")
+                return None
+
             auth_provider = None
             if CASSANDRA_USERNAME and CASSANDRA_PASSWORD:
                 auth_provider = PlainTextAuthProvider(
@@ -51,7 +60,6 @@ PRODUCT_SUBCATEGORIES_MAP = {
     1: "Mountain Bikes",
     2: "Road Bikes", # El publicador genera ProductSubcategoryKey 2
     3: "Touring Bikes",
-    # ... anade mas segun las subcategorias que esperes recibir
 }
 
 # --- Funciones Auxiliares para Generar Buckets de Tiempo ---
@@ -92,7 +100,6 @@ def get_latest_customer_info(customer_alternate_key):
         row = session.execute(query, [customer_alternate_key]).one()
         
         if row:
-            # FIX: Convert Cassandra Row object to a dictionary using _asdict()
             row_dict = row._asdict() 
             # Convertir objetos date y timestamp a strings para JSON de forma robusta
             if row_dict.get('birth_date'):
@@ -180,18 +187,15 @@ def get_global_recent_customers():
         return jsonify({"error": f"Error al obtener los clientes globales recientes: {str(e)}"}), 500
 
 
-# NOTA: El endpoint anterior para obtener los "ultimos 10 clientes globales"
-# (por clave alternativa o por timestamp de registro) ha sido eliminado de la tabla customer_latest_info
-# porque no era eficiente (requeria ALLOW FILTERING). La nueva tabla `global_recent_customers`
-# aborda esta necesidad de forma correcta.
+
 
 # 2. Cual es la distribucion geografica (ciudad/pais) de los clientes nuevos en este momento?
-# IMPORTANTE: Este endpoint ha sido modificado para requerir un parametro de pais,
-# ya que la tabla 'new_customer_geo_counts_by_hour' no permite consultas eficientes
-# de la distribucion completa (todos los paises) para una hora sin ALLOW FILTERING.
 # La consulta ahora recupera la distribucion por ciudad para un pais especifico en la hora actual.
 @app.route('/api/v1/customers/geo_distribution_hourly_by_country/<string:country_name>', methods=['GET'])
 def get_new_customer_geo_distribution_hourly_by_country(country_name):
+    if not country_name:
+        return jsonify({"error": "Se requiere el nombre del país"}), 400
+        
     session = get_cassandra_session()
     if not session:
         return jsonify({"error": "Cassandra connection failed"}), 500
@@ -267,6 +271,9 @@ def get_new_products_count():
 # 4. Cual es la categoria de los productos mas recientemente anadidos?
 @app.route('/api/v1/products/recent_by_category/<int:product_subcategory_key>', methods=['GET'])
 def get_recent_products_by_category(product_subcategory_key):
+    if product_subcategory_key not in PRODUCT_SUBCATEGORIES_MAP:
+        return jsonify({"error": "Categoría de producto no válida"}), 400
+        
     session = get_cassandra_session()
     if not session:
         return jsonify({"error": "Cassandra connection failed"}), 500
@@ -285,7 +292,6 @@ def get_recent_products_by_category(product_subcategory_key):
             subcategory_name = PRODUCT_SUBCATEGORIES_MAP.get(product_subcategory_key, "Categoria Desconocida")
             
             formatted_addition_timestamp = None
-            # FIX: Convert Cassandra Row object to a dictionary using _asdict() before formatting
             row_dict = row._asdict() 
 
             if row_dict.get('addition_timestamp'):
