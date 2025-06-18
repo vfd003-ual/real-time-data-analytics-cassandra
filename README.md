@@ -10,6 +10,111 @@ El sistema proporciona una plataforma de análisis de datos en tiempo real que p
 - Visualización en tiempo real de métricas clave
 - Análisis instantáneo de patrones y tendencias
 
+## 📊 Modelo de Datos
+
+El modelo de datos está optimizado para consultas en tiempo real, utilizando las características de Cassandra para lograr máximo rendimiento:
+
+```mermaid
+classDiagram
+    class customer_latest_info {
+        <<Table>>
+        PK customer_alternate_key: text
+        --
+        registration_timestamp: timestamp
+        first_name: text
+        last_name: text
+        email_address: text
+        phone: text
+        city: text
+        birth_date: date
+        gender: text
+        yearly_income: decimal
+        date_first_purchase: date
+        ...
+    }
+
+    class global_recent_customers {
+        <<Table>>
+        PK fixed_partition_key: text
+        CK1 registration_timestamp: timestamp DESC
+        CK2 customer_alternate_key: text
+        --
+        first_name: text
+        last_name: text
+        email_address: text
+        city: text
+        date_first_purchase: date
+    }
+
+    class new_customer_geo_counts {
+        <<Table>>
+        PK1 hour_bucket: text
+        PK2 country_region_name: text
+        CK city: text
+        --
+        new_customers_count: counter
+    }
+
+    class latest_product_category_trends {
+        <<Table>>
+        PK product_subcategory_key: int
+        CK1 addition_timestamp: timestamp DESC
+        CK2 product_alternate_key: text
+        --
+        english_product_name: text
+        color: text
+    }
+
+    class new_products_total_count {
+        <<Table>>
+        PK time_bucket: text
+        --
+        product_count: counter
+    }
+
+    note for customer_latest_info "Tabla principal de clientes\nOptimizada para búsquedas por ID"
+    note for global_recent_customers "Vista de clientes recientes\nOrdenada por tiempo de registro"
+    note for new_customer_geo_counts "Contadores geográficos\nAgregación por ubicación y hora"
+    note for latest_product_category_trends "Tendencias de productos\nOrdenadas por tiempo de adición"
+    note for new_products_total_count "Contadores de productos\nPor período de tiempo"
+```
+
+
+### Características del Modelo
+
+1. **Customer Latest Info**
+   - Tabla principal de clientes con todos los detalles
+   - Clave primaria simple para búsquedas por ID de cliente
+   - Optimizada para consultas de perfil completo
+
+2. **Global Recent Customers**
+   - Diseñada para listar los últimos clientes registrados
+   - Usa `fixed_partition_key` para evitar hotspots
+   - Ordenamiento por timestamp descendente para últimos registros
+
+3. **New Customer Geo Counts**
+   - Contadores por ubicación y hora
+   - Clave compuesta para distribución geográfica eficiente
+   - Permite agregaciones por país y ciudad
+
+4. **Product Category Trends**
+   - Seguimiento de productos por categoría
+   - Ordenamiento temporal descendente para últimas adiciones
+   - Optimizada para consultas de tendencias
+
+5. **Products Count by Time**
+   - Contadores simples por período de tiempo
+   - Soporta diferentes granularidades (5min/hora/día)
+   - Ideal para métricas de velocidad de ingesta
+
+### Consideraciones de Diseño
+
+- Uso de claves compuestas para distribución eficiente
+- Contadores para métricas agregadas
+- Ordenamiento por timestamp para consultas temporales
+- Desnormalización estratégica para rendimiento
+- Particionamiento optimizado para escrituras distribuidas
+
 ## 🚀 Características
 
 - **Ingestión de Datos en Tiempo Real**: Integración con RabbitMQ para procesamiento de eventos
