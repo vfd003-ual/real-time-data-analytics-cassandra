@@ -306,3 +306,6 @@ classDiagram
 ## ✨ Agradecimientos
 
 Este proyecto forma parte de un Trabajo de Fin de Grado en Ingeniería Informática, desarrollado para demostrar las capacidades de las soluciones NoSQL en el análisis de datos en tiempo real.
+
+- El trabajo completo se encuentra disponible en: [data-integration-platform](https://github.com/vfd003-ual/data-integration-platform)
+- La implementación de Cassandra está basada en el [Seminario de Apache Cassandra](https://ualmtorres.github.io/SeminarioCassandra) de la Universidad de Almería
