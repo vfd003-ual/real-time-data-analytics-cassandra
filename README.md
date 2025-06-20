@@ -16,6 +16,10 @@ El modelo de datos está optimizado para consultas en tiempo real, utilizando la
 
 ```mermaid
 classDiagram
+    %% Definición de relaciones conceptuales
+    customer_latest_info --> global_recent_customers: alimenta
+    customer_latest_info --> new_customer_geo_counts_by_hour: agrega por ubicación
+
     class customer_latest_info {
         <<Table>>
         PK customer_alternate_key: text
@@ -25,12 +29,31 @@ classDiagram
         last_name: text
         email_address: text
         phone: text
+        address_line1: text
+        address_line2: text
         city: text
+        state_province_code: text
+        postal_code: text
+        title: text
+        middle_name: text
+        name_style: int
         birth_date: date
+        marital_status: text
+        suffix: text
         gender: text
         yearly_income: decimal
+        total_children: int
+        number_children_at_home: int
+        english_education: text
+        spanish_education: text
+        french_education: text
+        english_occupation: text
+        spanish_occupation: text
+        french_occupation: text
+        house_owner_flag: int
+        number_cars_owned: int
         date_first_purchase: date
-        ...
+        commute_distance: text
     }
 
     class global_recent_customers {
@@ -46,7 +69,7 @@ classDiagram
         date_first_purchase: date
     }
 
-    class new_customer_geo_counts {
+    class new_customer_geo_counts_by_hour {
         <<Table>>
         PK1 hour_bucket: text
         PK2 country_region_name: text
@@ -65,19 +88,21 @@ classDiagram
         color: text
     }
 
-    class new_products_total_count {
+    class new_products_total_count_by_time {
         <<Table>>
         PK time_bucket: text
         --
         product_count: counter
     }
 
-    note for customer_latest_info "Tabla principal de clientes\nOptimizada para búsquedas por ID"
-    note for global_recent_customers "Vista de clientes recientes\nOrdenada por tiempo de registro"
-    note for new_customer_geo_counts "Contadores geográficos\nAgregación por ubicación y hora"
-    note for latest_product_category_trends "Tendencias de productos\nOrdenadas por tiempo de adición"
-    note for new_products_total_count "Contadores de productos\nPor período de tiempo"
+
 ```
+
+### Leyenda del Modelo:
+- **PK (Partition Key)**: Clave de partición que determina la distribución de datos en el cluster
+- **CK (Clustering Key)**: Clave de clustering que determina el orden de los datos dentro de una partición
+- **→ (Flechas)**: Indican el flujo de datos entre tablas en tiempo real
+- **<< Table >>**: Indica una tabla física en Cassandra
 
 
 ### Características del Modelo
